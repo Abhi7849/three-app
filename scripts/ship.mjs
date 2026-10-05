@@ -74,7 +74,7 @@ async function testLoop() {
     const r = spawnSync('npm', ['test'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
-      shell: true,
+      shell: process.platform === 'win32',  // needed on Windows for npm, no arg-injection risk
     });
     const out = (r.stdout || '') + (r.stderr || '');
     process.stdout.write(r.stdout || '');

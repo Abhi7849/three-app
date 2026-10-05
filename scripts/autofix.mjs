@@ -70,7 +70,7 @@ async function run() {
     const result = spawnSync('npm', ['test'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
-      shell: true,
+      shell: process.platform === 'win32',
     });
 
     const stdout = result.stdout || '';
