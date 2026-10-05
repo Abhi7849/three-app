@@ -14,7 +14,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { execSync, spawnSync } from 'child_process';
+import { execSync } from 'child_process';
 import process from 'process';
 
 // ── Parse args ────────────────────────────────────────────
@@ -71,17 +71,19 @@ console.log(bold(`\n▶  Test loop (max ${MAX_TRIES} attempts)`));
 async function testLoop() {
   for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
     console.log(bold(`\n   Attempt ${attempt}/${MAX_TRIES}…`));
-    const r = spawnSync('npm', ['test'], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-      shell: process.platform === 'win32',  // needed on Windows for npm, no arg-injection risk
-    });
-    const out = (r.stdout || '') + (r.stderr || '');
-    process.stdout.write(r.stdout || '');
-    if (r.stderr) process.stderr.write(r.stderr);
+    let stdout = '', stderr = '', status = 0;
+    try {
+      stdout = execSync('npm test', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (err) {
+      stdout = err.stdout || '';
+      stderr = err.stderr || '';
+      status = err.status ?? 1;
+    }
+    if (stdout) process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
 
-    if (r.status === 0) {
-      const m = out.match(/(\d+)\s+passed/);
+    if (status === 0) {
+      const m = stdout.match(/(\d+)\s+passed/);
       console.log(green(`\n   ✔  ${m ? m[1] : '?'} tests passed (attempt ${attempt})`));
       return true;
     }

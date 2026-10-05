@@ -22,7 +22,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { execSync, spawnSync } from 'child_process';
+import { execSync } from 'child_process';
 import process from 'process';
 
 // ── Config ────────────────────────────────────────────────
@@ -67,21 +67,22 @@ async function run() {
   for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
     console.log(bold(`── Attempt ${attempt} / ${MAX_TRIES} ──────────────────────────`));
 
-    const result = spawnSync('npm', ['test'], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-      shell: process.platform === 'win32',
-    });
+    let rawOut = '', rawErr = '', exitCode = 0;
+    try {
+      rawOut = execSync('npm test', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (err) {
+      rawOut = err.stdout || '';
+      rawErr = err.stderr || '';
+      exitCode = err.status ?? 1;
+    }
 
-    const stdout = result.stdout || '';
-    const stderr = result.stderr || '';
-    const combined = stdout + '\n' + stderr;
+    const combined = rawOut + '\n' + rawErr;
 
     // Print output
-    process.stdout.write(stdout);
-    if (stderr) process.stderr.write(stderr);
+    if (rawOut) process.stdout.write(rawOut);
+    if (rawErr) process.stderr.write(rawErr);
 
-    if (result.status === 0) {
+    if (exitCode === 0) {
       // ── All tests passed ──────────────────────────────
       const passedMatch = combined.match(/(\d+)\s+passed/);
       const count = passedMatch ? passedMatch[1] : '?';
