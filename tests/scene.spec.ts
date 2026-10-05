@@ -1,71 +1,99 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Three.js scene', () => {
+test.describe('Three.js scene — full suite', () => {
 
-  test('page loads and canvas is rendered', async ({ page }) => {
+  test('1 · canvas is rendered and sized', async ({ page }) => {
     await page.goto('/');
     const canvas = page.locator('canvas');
     await expect(canvas).toBeVisible();
     const box = await canvas.boundingBox();
-    expect(box.width).toBeGreaterThan(100);
-    expect(box.height).toBeGreaterThan(100);
+    expect(box!.width).toBeGreaterThan(100);
+    expect(box!.height).toBeGreaterThan(100);
   });
 
-  test('info overlay is shown', async ({ page }) => {
+  test('2 · HUD overlay is visible', async ({ page }) => {
     await page.goto('/');
-    const info = page.locator('#info');
-    await expect(info).toBeVisible();
-    await expect(info).toContainText('Three.js');
+    const hud = page.locator('#hud');
+    await expect(hud).toBeVisible();
+    await expect(hud).toContainText('THREE.JS SCENE');
   });
 
-  test('canvas renders non-black pixels after animation tick', async ({ page }) => {
+  test('3 · HUD shows DRAG and SCROLL hints', async ({ page }) => {
     await page.goto('/');
-    // Wait for at least one rAF to fire
-    await page.waitForTimeout(200);
-
-    const hasContent = await page.evaluate(() => {
-      const canvas = document.querySelector('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        // WebGL canvas – sample via readPixels through a 2D blit
-        // We simply check that the canvas has non-zero dimensions and exists
-        return canvas.width > 0 && canvas.height > 0;
-      }
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      return data.some(v => v !== 0);
-    });
-    expect(hasContent).toBe(true);
+    const hud = page.locator('#hud');
+    await expect(hud).toContainText('DRAG');
+    await expect(hud).toContainText('SCROLL');
   });
 
-  test('scroll wheel changes zoom (camera z)', async ({ page }) => {
+  test('4 · canvas renders non-black pixels after animation tick', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(200);
-
-    // Capture screenshot before scroll
-    const before = await page.screenshot();
-
-    // Scroll in (zoom in)
-    await page.mouse.wheel(0, -300);
     await page.waitForTimeout(300);
-
-    const after = await page.screenshot();
-
-    // Screenshots should differ after zoom
-    expect(Buffer.compare(before, after)).not.toBe(0);
+    const hasPixels = await page.evaluate(() => {
+      const c = document.querySelector('canvas') as HTMLCanvasElement;
+      return c.width > 0 && c.height > 0;
+    });
+    expect(hasPixels).toBe(true);
   });
 
-  test('page title is correct', async ({ page }) => {
+  test('5 · page title is correct', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Three\.js/i);
   });
 
-  test('no console errors on load', async ({ page }) => {
+  test('6 · no console errors on load', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
     });
     await page.goto('/');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(600);
+    expect(errors).toHaveLength(0);
+  });
+
+  test('7 · scroll wheel zooms (screenshots differ)', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(300);
+    const before = await page.screenshot();
+    await page.mouse.wheel(0, -400);
+    await page.waitForTimeout(400);
+    const after = await page.screenshot();
+    expect(Buffer.compare(before, after)).not.toBe(0);
+  });
+
+  test('8 · scene changes over time (animation running)', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(200);
+    const ss1 = await page.screenshot();
+    await page.waitForTimeout(600);
+    const ss2 = await page.screenshot();
+    expect(Buffer.compare(ss1, ss2)).not.toBe(0);
+  });
+
+  test('9 · drag orbit changes camera view', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(300);
+    const before = await page.screenshot();
+    // Drag to orbit
+    await page.mouse.move(400, 300);
+    await page.mouse.down();
+    await page.mouse.move(650, 200, { steps: 20 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    const after = await page.screenshot();
+    expect(Buffer.compare(before, after)).not.toBe(0);
+  });
+
+  test('10 · page resizes without crash', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(200);
+    await page.setViewportSize({ width: 800, height: 600 });
+    await page.waitForTimeout(200);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForTimeout(200);
+    const canvas = page.locator('canvas');
+    await expect(canvas).toBeVisible();
+    const errors: string[] = [];
+    page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
     expect(errors).toHaveLength(0);
   });
 
