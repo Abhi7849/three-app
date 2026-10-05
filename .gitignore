@@ -1,0 +1,28 @@
+# Dependencies & build output
+node_modules/
+dist/
+.vite/
+
+# Test artifacts
+playwright-report/
+test-results/
+*.spec.js.map
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+.npmrc
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.user

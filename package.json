@@ -1,0 +1,20 @@
+{
+  "name": "three-app",
+  "version": "1.0.0",
+  "description": "Three.js 3D scene with Playwright tests",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "ship": "node scripts/ship.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "three": "^0.165.0"
+  }
+}
